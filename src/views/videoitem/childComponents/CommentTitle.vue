@@ -2,13 +2,13 @@
     <div id="comment-ti">
         <div class="comment-title">
             <span>评论</span>
-            <span>(6666)</span>
+            <span>{{$store.state.commentDataLength}}</span>
         </div>
         <div class="user-info">
             <img :src="individualInfo.user_img" alt="" @click="toUserInfo" v-if="individualInfo">
             <img src="~assets/img/login.jpg" alt="" @click="toUserInfo" v-else>
-            <input type="text" placeholder="分享你刚编的故事">
-            <button>发表</button>
+            <input type="text" placeholder="分享你刚编的故事" ref="commentTitleIpt" v-model="publishContent">
+            <button @click="commTitleInputClick">发表</button>
         </div>
     </div>
 </template>
@@ -18,6 +18,7 @@ export default {
     data() { 
         return {
             individualInfo: null,
+            publishContent: ""
         }
     },
     methods: {
@@ -32,10 +33,20 @@ export default {
         
         toUserInfo() {
             this.$router.push("/userinfo")
+        },
+        commTitleInputClick() {
+            this.$emit("publishComment", this.publishContent)
+            this.publishContent = ""
         }
     },
     created () {
         this.getIndividualInfo()
+    },
+    mounted () {
+        this.$bus.$on("toCommentTitleInput", () => {
+            this.$refs.commentTitleIpt.focus()
+        })  //  利用事件总线接受SecondComment点击回复的事件，使本组件
+            //  的输入框聚焦    
     }
 }
 </script>

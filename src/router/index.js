@@ -9,6 +9,7 @@ const UserInfo = () => import("views/userinfo/UserInfo")
 const EditMessage = () => import("views/editmessage/EditMessage")
 const Home = () => import("views/home/Home")
 const Videoitem = () => import("views/videoitem/VideoItem")
+const Category = () => import("views/category/Category")
 
 Vue.use(Router)
 
@@ -49,6 +50,10 @@ const routes = [
     {
         path: "/article/:id",
         component: Videoitem
+    },
+    {
+        path: "/category",
+        component: Category
     }
 ]
 

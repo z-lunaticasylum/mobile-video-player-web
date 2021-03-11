@@ -1,23 +1,26 @@
 <template>
     <div id="home">
         <top-message></top-message>
-        <van-tabs color="#3366ff" v-model="active" sticky>
-            <van-tab v-for="(item, index) in categoryTitles" :key="index" 
-            :title="item.title">
-                <van-list v-model="item.loading"
-                :finished="item.finished"
-                finished-text="到我的底线啦"
-                @load="onLoad"
-                :immediate-check="false">
-                    <div class="detail-items">
-                        <details-items :detailsItem="detailsItem" 
-                        v-for="(detailsItem, indey) in item.list" 
-                        :key="indey" 
-                        class="items"></details-items>
-                    </div>
-                </van-list>
-            </van-tab>  
-        </van-tabs>
+        <div class="nav-bar">
+            <van-tabs color="#3366ff" v-model="active" sticky>
+                <van-tab v-for="(item, index) in categoryTitles" :key="index" 
+                :title="item.title">
+                    <van-list v-model="item.loading"
+                    :finished="item.finished"
+                    finished-text="到我的底线啦"
+                    @load="onLoad"
+                    :immediate-check="false">
+                        <div class="detail-items">
+                            <details-items :detailsItem="detailsItem" 
+                            v-for="(detailsItem, indey) in item.list" 
+                            :key="indey" 
+                            class="items"></details-items>
+                        </div>
+                    </van-list>
+                </van-tab>  
+            </van-tabs>
+            <div class="van-icon" @click="toCategory"><van-icon name="ellipsis"/></div>
+        </div>
     </div>
 </template>
 
@@ -39,10 +42,17 @@ export default {
     },
     methods: {
         async getCategoryTitles() {
-            const result = await this.$request.get("/category")
-            console.log(result) 
-            // this.categoryTitles = result.data
-            this.changeCategory(result.data)
+            if(localStorage.getItem("nowCategory")) {
+                let resData = JSON.parse(localStorage.getItem("nowCategory"))
+                this.changeCategory(resData)
+                this.getVideoData()
+                // 判断如果localStorage中的nowCateGory有数据，就渲染nowCateGory中的数据
+            }else {
+                const result = await this.$request.get("/category")
+                console.log(result) 
+                // this.categoryTitles = result.data
+                this.changeCategory(result.data)
+            }
         },// 获取到首页中滚动标题栏中的标题数据
 
         changeCategory(data) {
@@ -97,10 +107,17 @@ export default {
             activeTitleItem.page += 1
             this.getVideoData()
         },// 滚动到底部时触发这个方法
+
+        toCategory() {
+            this.$router.push("/category")
+        }
     },
     created () {
         this.getCategoryTitles()
     },
+    activated() {
+        this.getCategoryTitles()
+    },  //  页面处于keep-alive状态时，且非第一次进入该页面时只触发的方法
     watch: {
         active() {
             this.getVideoData()
@@ -121,5 +138,16 @@ export default {
     }
     .items {
         width: 45%;
+    }
+
+    .nav-bar {
+        position: relative;
+    }
+    .nav-bar .van-icon {
+        position: absolute;
+        right: 0;
+        top: 7px;
+        padding: 0px 10px;
+        background-color: #fff;
     }
 </style>

@@ -20,13 +20,13 @@
                     <span class="video-play-info">{{videoInfo.date}}</span>
                 </div>
                 <div class="video-spread">
-                    <div class="first-item">
+                    <div class="first-item" @click="collectionClick" :class="{collection:isCollected}">
                         <van-icon name="star" />
                         <span>收藏</span>
                     </div>
-                    <div class="second-item">
+                    <div class="second-item" @click="followClick" :class="{collection:isFollow}">
                         <van-icon name="sort" />
-                        <span>缓存</span>
+                        <span>关注</span>
                     </div>
                     <div class="third-item">
                         <van-icon name="share" />
@@ -40,8 +40,9 @@
             <details-items v-for="(item, index) in recommendVideo" :key="index"
             :detailsItem="item" class="recommend-video-item"></details-items>
         </div>
-        <comment-title></comment-title>
-        <comment></comment>
+        <comment-title 
+        @publishComment="publishComment"></comment-title>
+        <comment ref="comment"></comment>
     </div>
 </template>
 
@@ -57,6 +58,13 @@ export default {
         return {
             videoInfo: null,
             recommendVideo: [],
+            publishContentMess: {
+                comment_content: "",
+                comment_date: "",
+                article_id: ""
+            },  //  发表评论需要携带的参数，分别是评论的内容、日期和对应评论的视频id
+            isCollected: "",    // 判断是否收藏
+            isFollow: ""
         }
     },
     components: {
@@ -68,8 +76,11 @@ export default {
     methods: {
         async getVideoItem() {
             const result = await this.$request.get("/article/" + this.$route.params.id)
-            // console.log(result)
+            console.log(result)
             this.videoInfo = result.data[0]
+
+            this.existedFollow()
+
         },  // 获取具体视频的内容
 
         async getRecommendVideo() {
@@ -77,16 +88,100 @@ export default {
             // console.log(result)
             this.recommendVideo = result.data
         },  // 这个函数是获取推荐视频的内容
+
+        async publishComment(publishContent) {
+            // console.log(publishContent)
+            this.publishContentMess.comment_date = this.getNowTime()
+            // 首先获得评论的时间
+            this.publishContentMess.comment_content = publishContent
+            this.publishContentMess.article_id = this.$route.params.id
+
+            const result = await this.$request.post("/comment_post/" + localStorage.getItem("id"), this.publishContentMess)
+            // 将评论发送到接口
+            // 然后调用获取评论的方法
+            this.$refs.comment.getDetailsComment()
+        },  //  发表评论
+
+        getNowTime() {
+            let time = new Date()
+            let mon = time.getMonth() + 1
+            let day = time.getDate()
+
+            if(mon < 10) {
+                mon = "0" + mon
+            }
+            if(day < 10) {
+                day = "0" + day
+            }
+
+            let resultTime = ""
+            resultTime = mon + "-" + day
+
+            return resultTime
+        },   //  封装一个获得当前月份和天数的函数
+
+        async getCollectionMess() {
+            if(localStorage.getItem("token")) {
+                const result = await this.$request.post("/collection/" + localStorage.getItem("id"), {article_id: this.$route.params.id})
+                
+                return result
+            }
+        },  //  获取收藏的信息
+        // 这里封装的是点击收藏时向后台提交收藏状态数据的请求函数，用的是post
+
+        async collectionClick() {
+            const res =  await this.getCollectionMess()
+            console.log(res)
+            if(res.data.msg == "收藏成功") {
+                this.isCollected = true
+                this.$alertInfo.fail("收藏成功")
+            }else {
+                this.isCollected = false
+                this.$alertInfo.fail("取消收藏成功")
+            }
+        },  //  点击收藏按钮选择是否收藏
+
+        async existedCollection() {
+            if(localStorage.getItem("token")) {
+                const res = await this.$request.get("/collection/" + localStorage.getItem("id"), {params: {article_id: this.$route.params.id}})
+                console.log(res)
+                this.isCollected = res.data.success 
+            }
+        },   //  一进入页面，显示收藏按钮的样式
+        // 注意：这里获取是否是收藏的状态的请求方式是get
+
+        async followClick() {
+            const res = await this.$request.post("/sub_scription/" + localStorage.getItem("id"), {sub_id: this.videoInfo.userinfo.id})
+            console.log(res)
+
+            if(res.data.msg == "关注成功") {
+                this.isFollow = true
+                this.$toast.fail(res.data.msg)
+            }else {
+                this.isFollow = false
+                this.$toast.fail(res.data.msg)
+            }
+        },   //  点击关注按钮，进行是否关注的选择
+
+        async existedFollow() {
+            const res = await this.$request.get("/sub_scription/" + localStorage.getItem("id"), {params: {sub_id: this.videoInfo.userid}})
+
+            this.isFollow = res.data.success
+        }
     },
     created() {
         this.getVideoItem()
         this.getRecommendVideo()
+        this.existedCollection()
     }, 
     watch: {
         $route() {
             this.getVideoItem()
             this.getRecommendVideo()
         }   //这里是监听到路由的跳转变化时，发送数据到请求
+    },
+    mounted () {
+        
     }
 }
 </script>
@@ -147,5 +242,12 @@ export default {
     }
     .recommend-video-item {
         width: 45%;
+    }
+    .video-play-info {
+        margin-right: 5px;
+    }
+
+    .collection {
+        color: #3366ff;
     }
 </style>
